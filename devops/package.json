@@ -1,0 +1,25 @@
+{
+  "name": "kadori_deployment",
+  "version": "0.0.1",
+  "author": "Tomas Benda <juuxstar@gmail.com>",
+  "description": "build dependencies for this project",
+  "licence": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "bluebird": "^3.5.3",
+    "cli-color": "^1.4.0",
+    "gulp": "^3.9.1",
+    "gulp-guzzle": "juuxstar/gulp-guzzle",
+    "gulp-changed": "^3.2.0",
+    "gulp-filter": "^5.1.0",
+    "gulp-install": "^1.1.0",
+    "gulp-less": "^4.0.1",
+    "gulp-tap": "^1.0.1",
+    "gulp-sourcemaps": "^2.6.4",
+    "gulp-typescript": "^5.0.0",
+    "lodash": "^4.17.11",
+    "typescript": "^3.2.4",
+    "@juuxstar/gulp-guzzle": "github:juuxstar/gulp-guzzle",
+    "webpack" : "^4.29.6"
+  }
+}

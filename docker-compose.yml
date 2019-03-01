@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  # main server
+  node:
+    image: node:11.8.0
+    restart: unless-stopped
+    volumes:
+      - build:/srv/build:ro
+      - ./devops:/srv/devops:rw,delegated
+    working_dir: /srv/build/server
+    command: "node server.js"
+    ports:
+      - "8080:80"
+    environment:
+      TZ:  America/Toronto
+
+  # watch process for use in development
+  watch:
+    image: node:11.8.0
+    volumes:
+      - ./src:/srv/src:rw,delegated   # needs to writeback package-lock.json
+      - ./devops:/srv/devops:rw,delegated
+      - /srv/devops/node_modules    # make an in-container dir only
+      - build:/srv/build
+      - npm-cache:/home/node/.npm
+    working_dir: /srv/devops
+    command: "/bin/sh -c 'npm --silent install && exec npx --no-install gulp watch'"
+    environment:
+      TZ:  America/Toronto
+
+volumes:
+  build:
+  npm-cache:
+    external:
+      name: npm-cache

@@ -1,0 +1,131 @@
+@import "flex";
+@import "../lib/less/font";
+@import (reference) "../lib/less/colors";
+
+body, input, button {
+	font-family: Cabin;
+	font-size  : 2.5rem;
+}
+
+input {
+	padding: 1rem;
+	border : none;
+}
+
+button {
+	@size        : 4rem;
+	display      : flex;
+	margin       : 1rem @size;
+	padding      : 0;
+	align-items  : center;
+	background   : @buttons;
+	border       : 0;
+	color        : white;
+	transition   : background 0.5s;
+	white-space: nowrap;
+
+	&:disabled {
+		background: @disabled;
+		transition: background 0.5s;
+	}
+
+	&::before, &::after {
+		content      : '';
+		width        : @size;
+		height       : @size;
+		position     : relative;
+		background   : inherit;
+		border-radius: 100%;
+	}
+
+	&::before {
+		left: -@size / 2;
+	}
+	&::after {
+		right: -@size / 2;
+	}
+}
+
+body {
+	height     : 100vh;
+	margin     : 0;
+	background : black;
+	color      : white;
+
+	#root {
+		height    : 100%;
+		width     : 100%;
+		background: inherit;
+
+		> * {
+			height: 100%;
+		}
+	}
+
+	.name-editor {
+		position  : absolute;
+		top       : 0;
+		bottom    : 0;
+		left      : 0;
+		right     : 0;
+		background: inherit;
+
+		* {
+			margin-bottom: 2rem;
+		}
+
+		input {
+			text-align: center;
+		}
+	}
+
+	.queue, .search {
+		.header {
+			background    : @neutral2;
+			padding       : 1rem;
+			margin-bottom : 1rem;
+			font-weight   : bold;
+			text-transform: uppercase;
+
+			input {
+				margin-left   : 10px;
+				background    : transparent;
+				color         : white;
+				text-transform: uppercase;
+
+				&::placeholder {
+					color         : #CCC;
+					font-weight   : normal;
+					text-transform: capitalize;
+				}
+			}
+		}
+
+		.video-list {
+			min-height: 2rem;
+			overflow  : auto;
+
+			.video {
+				margin       : 1rem;
+				padding      : 2rem;
+				background   : @neutral3;
+				border-radius: 1rem;
+
+				// class of the placeholder when the video is being dragged around
+				&.sortable-ghost {
+					background: @accent1;
+				}
+
+				img {
+					height      : 10rem;
+					float       : left;
+					margin-right: 2rem;
+				}
+
+				label {
+					text-transform: capitalize;
+				}
+			}
+		}
+	}
+}

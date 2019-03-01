@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"target"                          : "es2018",
+		"lib"                             : [ "es2018" ],
+		"noImplicitAny"                   : false,
+		"newLine"                         : "lf",
+		"removeComments"                  : true,
+		"forceConsistentCasingInFileNames": true,
+		"alwaysStrict"                    : true,
+		"moduleResolution"                : "node",
+		"allowSyntheticDefaultImports"    : true,
+		"experimentalDecorators"          : true
+	}
+}

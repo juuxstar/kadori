@@ -1,0 +1,21 @@
+{
+  "name"       : "kadori-server",
+  "version"    : "0.0.1",
+  "author"     : "Tomas Benda <juuxstar@gmail.com>",
+  "description": "The server component of this project",
+  "dependencies": {
+    "cli-color"    : "^1.4.0",
+    "express"      : "^4.16.4",
+    "serve-favicon": "^2.5.0",
+    "morgan"       : "^1.9.1",
+    "socket.io"    : "^2.2.0",
+    "lodash"       : "^4.17.11"
+  },
+  "devDependencies": {
+    "@types/node"         : "^10.12.20",
+    "@types/express"      : "^4.16.1",
+    "@types/morgan"       : "^1.7.35",
+    "@types/cli-color"    : "^0.3.29",
+    "@types/serve-favicon": "^2.2.30"
+  }
+}

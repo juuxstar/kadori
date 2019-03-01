@@ -1,0 +1,69 @@
+@import "flex";
+@import "../lib/less/font";
+@import (reference) "../lib/less/colors";
+
+body {
+	height     : 100vh;
+	margin     : 0;
+	font-family: Cabin;
+	background : @neutral1;
+	color      : white;
+}
+
+body {
+	#root {
+		height    : 100%;
+		width     : 100%;
+		background: inherit;
+	}
+	.header {
+		margin   : 10px;
+		font-size: 30px;
+
+		.next-up {
+			color : @neutral3;
+
+			label {
+				.label();
+			}
+			.name {
+				color: @neutral4;
+			}
+		}
+	}
+
+	.youtube-player-wrapper {
+		height: 100%;
+
+		.youtube-player {
+			height: 100%;
+			width : 100%;
+		}
+	}
+
+	.footer {
+		margin : 10px;
+
+		.queue {
+			label {
+				.label();
+				color : @neutral3;
+			}
+
+			.singer {
+				color: @neutral4;
+
+				&:not(:last-child)::after {
+					content: ',';
+				}
+			}
+		}
+	}
+}
+
+.label() {
+	text-transform: uppercase;
+	&:after {
+		content: ": ";
+	}
+}

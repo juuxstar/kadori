@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Kadori - Karaoke Done Right</title>
+		<link rel="stylesheet" type="text/css" href="./controller.css">
+	</head>
+
+	<body><div id="root">
+		<div class="flex-col">
+			<div class="queue flex-col">
+				<div class="header flex-row flex-h-full">
+					<span>Queued ({{ queued.length }})</span>
+					<span>{{ userName }}</span>
+				</div>
+				<div class="video-list flex-col">
+					<draggable v-model="queued" :options="{ group: { name : 'videos', pull : false }, handle : 'img' }">
+						<div class="video flex-row flex-v-center" v-for="video in queued" :key="video.videoID">
+							<img v-bind:src="video.thumbnailUrl" />
+							<label class="flex-grow">{{ video.title }}</label>
+						</div>
+					</draggable>
+				</div>
+			</div>
+
+			<div class="search flex-grow flex-col">
+				<div class="header flex-row flex-v-center"><input class="flex-grow" v-model="searchValue" placeholder="search for artist or song..." /></div>
+				<div class="video-list flex-col flex-grow">
+					<draggable v-model="searchResults" :options="{ group: { name : 'videos', put : false, revertClone : true }, sort : false, handle : 'img' }">
+						<div class="video flex-row flex-v-center" v-for="result in searchResults" :key="result.videoID">
+							<img v-bind:src="result.thumbnailUrl" />
+							<label class="flex-grow">{{ result.title }}</label>
+						</div>
+					</draggable>
+				</div>
+			</div>
+		</div>
+
+		<div class="name-editor flex-col flex-center" v-if="isUserNameEditorVisible">
+			<label>Hi, what is your name?</label>
+			<input v-model.trim="userName" />
+			<button :disabled="!userName" v-on:click="submitUserName">That's me</button>
+		</div>
+
+		<script type="module" src="/controller/controller"></script>
+	</div></body>
+</html>

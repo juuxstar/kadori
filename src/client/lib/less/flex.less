@@ -1,0 +1,130 @@
+/**
+ * New Flex layout system
+ */
+// make a row of items
+.flex-row {
+	display        : flex;
+	flex-direction : row;
+
+	> *:not(.flex-grow):not(.flex-shrink), > .flex-no-shrink {
+		flex-shrink : 0;
+	}
+
+	&.flex-reverse {
+		flex-direction : row-reverse;
+	}
+
+	&.flex-h-center, &.flex-center {
+		justify-content: center;
+	}
+	&.flex-h-start {
+		justify-content: flex-start;
+	}
+	&.flex-h-end {
+		justify-content: flex-end;
+	}
+	&.flex-h-full {
+		justify-content: space-between;
+	}
+	&.flex-h-spread {
+		justify-content: space-around;
+	}
+
+	&.flex-v-start {
+		align-items: flex-start;
+	}
+	&.flex-v-end {
+		align-items : flex-end;
+	}
+	&.flex-v-center, &.flex-center {
+		align-items : center;
+	}
+	&.flex-v-full {
+		align-items : stretch;
+	}
+	&.flex-v-baseline {
+		align-items : baseline;
+	}
+	&.flex-wrap {
+		flex-wrap : wrap;
+	}
+
+	> .flex-self-v-center {
+		align-self : center;
+	}
+	> .flex-self-v-end {
+		align-self : flex-end;
+	}
+	> .flex-self-v-start {
+		align-self : flex-start;
+	}
+	> .flex-self-v-full {
+		align-self : stretch;
+	}
+}
+// make a column of items
+.flex-col {
+	display        : flex;
+	flex-direction : column;
+
+	> *:not(.flex-grow):not(.flex-shrink), > .flex-no-shrink {
+		flex-shrink : 0;
+	}
+
+	&.flex-reverse {
+		flex-direction : column-reverse;
+	}
+
+	&.flex-v-center, &.flex-center {
+		justify-content: center;
+	}
+	&.flex-v-end {
+		justify-content: flex-end;
+	}
+	&.flex-v-full {
+		justify-content: space-between;
+	}
+	&.flex-v-spread {
+		justify-content: space-around;
+	}
+	&.flex-h-end {
+		align-items : flex-end;
+	}
+	&.flex-h-center, &.flex-center {
+		align-items : center;
+	}
+	&.flex-h-start {
+		align-items : flex-start;
+	}
+	&.flex-h-full {
+		align-items : stretch;
+	}
+	&.flex-wrap {
+		flex-wrap : wrap;
+	}
+
+	> .flex-self-h-center {
+		align-self : center;
+	}
+	> .flex-self-h-end {
+		align-self : flex-end;
+	}
+	> .flex-self-h-start {
+		align-self : flex-start;
+	}
+	> .flex-self-h-full {
+		align-self : stretch;
+	}
+}
+
+// add to an item to make it grow to take up remaining space
+.flex-grow {
+	flex-grow: 1;
+}
+// COULDO: look at implementing this into flex-shrink
+// add to an item to make it shrink smaller than its content (must override min-sizes to allow containers to shrink smaller than their content)
+.flex-container-shrink {
+	flex-shrink : 1;
+	min-width   : 0;
+	min-height  : 0;
+}

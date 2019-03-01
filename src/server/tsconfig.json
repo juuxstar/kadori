@@ -1,0 +1,14 @@
+{
+	"extends" : "../tsconfig",
+	"compilerOptions": {
+		"module"   : "commonjs",
+		"typeRoots": [
+			"/srv/build/server/node_modules/@types"
+		],
+		"baseUrl": ".",
+		"paths"  : {
+			"/lib/*": [ "./lib/*", "../common/lib/*" ],
+			"*"    : [ "/srv/build/server/node_modules/*" ]
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"extends" : "../tsconfig",
+	"compilerOptions": {
+		"lib"      : [ "es2018", "dom" ],
+		"module"   : "es6",
+		"typeRoots": [ "/srv/build/client/node_modules/@types" ],
+		"baseUrl"  : ".",
+		"paths" : {
+			"/lib/*"                : [ "./lib/*", "../common/lib/*" ],
+			"jquery"                : [ "/srv/build/client/node_modules/jquery/dist/jquery.min.js" ],
+			"lodash"                : [ "/srv/build/client/node_modules/lodash-es/lodash.js" ],
+			"axios"                 : [ "/srv/build/client/node_modules/axios/dist/axios.min.js" ],
+			"vue"                   : [ "/srv/build/client/node_modules/vue/dist/vue.esm.browser.js" ],
+			"vue-class-component"   : [ "/srv/build/client/node_modules/vue-class-component/dist/vue-class-component.js" ],
+			"vue-property-decorator": [ "/srv/build/client/node_modules/vue-property-decorator/lib/vue-property-decorator.js" ],
+			"vuedraggable"          : [ "/srv/build/client/node_modules/vuedraggable/dist/vuedraggable.js" ],
+			"sortablejs"            : [ "/srv/build/client/node_modules/sortablejs/Sortable.min.js" ],
+			"socket.io-client"      : [ "/srv/build/client/node_modules/socket.io-client/dist/socket.io.slim.js" ]
+		}
+	}
+}
