@@ -1,14 +1,20 @@
-import PromiseDeferral          from '/lib/PromiseDeferral';
+import PromiseDeferral          from '/common/lib/PromiseDeferral';
 import { Vue, Component, Prop } from 'vue-property-decorator';
 
 const instancesToInitialize = [];
+const YOUTUBE_PLAYER_STATES = {
+	'-1': 'unstarted',
+	'0' : 'ended',
+	'1' : 'playing',
+	'2' : 'paused',
+	'3' : 'buffering',
+	'5' : 'video-cued'
+};
 
-declare let YT : any;	// the global YouTube object
-
-@Component({ name : 'youtube-player' })
+@Component
 export default class VueYouTubePlayer extends Vue {
 
-	// PROPERTIES
+	// PROPS
 	/**
 	 * Property: true if the full-screen button should be visible
 	 */
@@ -26,6 +32,20 @@ export default class VueYouTubePlayer extends Vue {
 	initOptions : Object;
 
 	// METHODS
+
+	getCurrentVideoID() : string {
+		const videoData = this.ytPlayer.getVideoData();
+		return videoData ? videoData.video_id : '';
+	}
+
+	getCurrentVideoTitle() : string {
+		const videoData = this.ytPlayer.getVideoData();
+		return videoData ? videoData.title : '';
+	}
+
+	getState() : string {
+		return YOUTUBE_PLAYER_STATES[this.ytPlayer.getPlayerState()];
+	}
 
 	/**
 	 * @returns {Promise} resolves to true when the player is fully initialized
@@ -53,13 +73,13 @@ export default class VueYouTubePlayer extends Vue {
 		this.ytPlayer[urlOrID.startsWith('http') ? 'loadVideoByUrl' : 'loadVideoById'](urlOrID);
 	}
 
-	// LIFECYCLE HOOKS
+	// LIFE-CYCLE HOOKS
 
 	/**
 	 * Called when component is mounted.
 	 */
 	mounted() {
-		if (YT === undefined) {
+		if ((window as any).YT === undefined) {
 			// YouTube script not yet loaded; wait for ready callback
 			instancesToInitialize.push(this);
 			this.initOptions = { fs : this.fullScreenButton };
@@ -70,6 +90,10 @@ export default class VueYouTubePlayer extends Vue {
 		}
 	}
 
+	render(h) {
+		return h('div')
+	}
+
 	beforeDestroy() {
 		if (this.ytPlayer) {
 			this.ytPlayer.destroy()
@@ -78,28 +102,31 @@ export default class VueYouTubePlayer extends Vue {
 	}
 }
 
-function checkReady(player) {
-	if (!player.whenReady()) {
-		throw new Error('YouTube player not yet ready; wait on Promise from .whenReady()');
+function checkReady(player : VueYouTubePlayer) {
+	if (!player.whenReady) {
+		throw new Error('YouTube player not yet ready; wait on Promise from .whenReady');
 	}
 }
 
-function initialize(player) {
+function initialize(player : VueYouTubePlayer) {
 	if (player.ytPlayer) {
 		return;
 	}
 
-	this.ytPlayer = new YT.Player(this.element, { playerVars : Object.assign({}, { enablejsapi : 1 }, this.initOptions) });
-	this.ytPlayer.addEventListener('onReady', () => {
-		if (this.readyDeferral) {
-			this.readyDeferral.resolve();
+	player.ytPlayer = new (window as any).YT.Player(player.$el, { playerVars : Object.assign({}, { enablejsapi : 1 }, player.initOptions) });
+	player.ytPlayer.addEventListener('onReady', () => {
+		if (player.readyDeferral) {
+			player.readyDeferral.resolve();
 		}
+	});
+	player.ytPlayer.addEventListener('onStateChange', event => {
+		player.$emit(YOUTUBE_PLAYER_STATES[event.data]);
 	});
 }
 
 // * this is the callback function for the script above and unfortunately has to be at the global level
 (window as any).onYouTubeIframeAPIReady = function() {
-	instancesToInitialize.forEach(instance => instance.initialize());
+	instancesToInitialize.forEach(initialize);
 }
 
 // include the youtube iframe API script

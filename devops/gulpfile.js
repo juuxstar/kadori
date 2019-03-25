@@ -1,19 +1,16 @@
 'use strict';
-/* eslint-env node */
-/* eslint-disable no-console */
 
-const Promise       = require('bluebird');
-const path          = require('path');
-const fs            = Promise.promisifyAll(require('fs'));
-const childProcess  = Promise.promisifyAll(require('child_process'));
-const clc           = require('cli-color');
-const _             = require('lodash');
-const changed       = require('gulp-changed');
-const sourcemaps    = require('gulp-sourcemaps');
-const typeScript    = require('gulp-typescript');
-const webpack       = require('webpack');
-const guzzle        = require('@juuxstar/gulp-guzzle');
-const tsConfigPaths = require('../src/client/tsconfig.json').compilerOptions.paths;
+const Promise      = require('bluebird');
+const path         = require('path');
+const fs           = Promise.promisifyAll(require('fs'));
+const childProcess = Promise.promisifyAll(require('child_process'));
+const clc          = require('cli-color');
+const _            = require('lodash');
+const changed      = require('gulp-changed');
+const sourcemaps   = require('gulp-sourcemaps');
+const typeScript   = require('gulp-typescript');
+const webpack      = require('webpack');
+const guzzle       = require('@juuxstar/gulp-guzzle');
 
 // gulp plugins to guzzle
 guzzle({
@@ -37,24 +34,9 @@ const SRC_CLIENT_PATH = path.join(SRC_PATH, 'client');
 const DST_PATH        = path.resolve('../build');
 const DST_CLIENT_PATH = path.join(DST_PATH, 'client');
 
-const nonESModuleDependencies = {
-	'axios'               : tsConfigPaths.axios,
-	'sortablejs'          : tsConfigPaths.sortablejs,
-	'vue-class-component' : {
-		distributable : tsConfigPaths['vue-class-component'],
-		dependencies  : [ 'vue' ],
-	},
-	'vue-property-decorator' : tsConfigPaths['vue-property-decorator'],
-	'vuedraggable'           : {
-		distributable : tsConfigPaths.vuedraggable,
-		dependencies  : [ 'sortablejs' ],
-	},
-	'socket.io-client' : tsConfigPaths['socket.io-client'],
-};
-
 // Guzzle Tasks
 guzzle.task('default', [ 'build' ]);
-guzzle.task('build', [ 'server', 'client', 'less', 'client.adjustNonES6Modules' ]);
+guzzle.task('build',   [ 'server', 'client' ]);
 
 /**
  * Clean destination directory
@@ -62,7 +44,7 @@ guzzle.task('build', [ 'server', 'client', 'less', 'client.adjustNonES6Modules' 
  * Note: leave node_modules since the install task will take care of removing unwanted modules.
  */
 guzzle.task('clean', _.once(async () => {
-	const excludeDirs = [ 'server/node_modules', 'client/lib/vendor/node_modules' ].map(dir => path.join(DST_PATH, dir));
+	const excludeDirs = [ 'server/node_modules', 'client/node_modules' ].map(dir => path.join(DST_PATH, dir));
 
 	// to clear all but the specified dir, we remove its write perms, delete everything, and restore write perms
 	// the `|| true` prevents early exits from errors (fullDir might not exist and that's okay)
@@ -72,39 +54,14 @@ guzzle.task('clean', _.once(async () => {
 }));
 
 [ 'server', 'client' ].forEach(component => {
-	const tsProject = typeScript.createProject(`../src/${component}/tsconfig.json`);
-	const source    = path.join(SRC_PATH, component);
-	const dest      = path.join(DST_PATH, component);
+	const source = path.join(SRC_PATH, component);
+	const dest   = path.join(DST_PATH, component);
 
 	guzzle.task(component, [
-
 		// copy all files in all src directories to destination directory
 		guzzle.task('copy', [ 'clean' ], function() {
-			this.read([ '**', '!**/*.ts', '!**/*.less' ], { cwd : source })
+			this.read([ '**', '!**/*.ts', '!**/*.less', '!package*.json' ], { cwd : source })
 				.changed(dest)
-				.write(dest);
-		}),
-
-		// compile all typeScript files
-		guzzle.task('typeScript', [ 'clean', `${component}.installNodeModules` ], function() {
-			this.read([
-				`${SRC_PATH}/${component}/**/*.ts`,
-				`${SRC_PATH}/common/**/*.ts`,
-			])
-				.changed(dest, { extension : '.ts ' })
-				.pipe(tsProject())
-				.on('error', () => { /* Ignore compiler errors */ })
-				.tap(file => {
-					// rewrite module imports paths to make the node & browser happy
-					file.contents = Buffer.from(adjustModule(file.contents,
-						require(`../src/${component}/tsconfig.json`).compilerOptions.paths,
-						{
-							stripPathPrefix : component === 'client' ? DST_CLIENT_PATH : '',
-							exactMatch      : component === 'client',
-							isNodeModule    : component === 'server',
-						}
-					));
-				})
 				.write(dest);
 		}),
 
@@ -122,41 +79,48 @@ guzzle.task('clean', _.once(async () => {
 						.write(source);
 				});
 		}),
+
+		// add other server/client tasks
+		...({
+			server : [ 'server.typeScript' ],
+			client : [ 'client.webpack', 'client.less' /* ,'adjustNonES6Modules'*/ ],
+		})[component],
 	]);
 });
 
-// tweak the non-ES6-modules to be ES6-module compatible
-guzzle.task('client.adjustNonES6Modules', [ 'client.installNodeModules' ], function() {
-	const dir = `${DST_CLIENT_PATH}/node_modules`;
 
-	_.forOwn(nonESModuleDependencies, specs => {
-		if (Array.isArray(specs)) {
-			specs = specs[0];
-		}
-		if (typeof specs === 'string') {
-			specs = { distributable : specs, dependencies : [] };
-		}
-		if (Array.isArray(specs.distributable)) {
-			specs.distributable = specs.distributable[0];
-		}
+// compile all server typeScript files
+// HACK: need 2 projects as cannot use the same project instance twice
+const tsProjectServer       = typeScript.createProject('../src/server/tsconfig.json');
+const tsProjectServerCommon = typeScript.createProject('../src/server/tsconfig.json');
 
-		specs.distributable = specs.distributable.substr(dir.length + 1);
+guzzle.task('server.typeScript', [ 'clean', 'server.installNodeModules' ], function() {
+	this.read([ `${SRC_PATH}/server/**/*.ts` ])
+		.changed(`${DST_PATH}/server`, { extension : '.ts ' })
+		.pipe(tsProjectServer())
+		.on('error', () => { /* Ignore compiler errors */ })
+		.write(`${DST_PATH}/server`)
 
-		this.read([ specs.distributable ], { cwd : dir })
-			.tap(file => {
-				file.contents = Buffer.from(adjustModule(file.contents, tsConfigPaths, {
-					stripPathPrefix : DST_CLIENT_PATH,
-					exactMatch      : true,
-					dependencies    : specs.dependencies,
-				}));
-			})
-			.write(path.dirname(`${dir}/${specs.distributable}`));
+		.read([ `${SRC_PATH}/common/**/*.ts` ])
+		.changed(`${DST_PATH}/server/common`, { extension : '.ts ' })
+		.pipe(tsProjectServerCommon())
+		.on('error', () => { /* Ignore compiler errors */ })
+		.write(`${DST_PATH}/server/common`)
+	;
+});
+
+// compile all client typeScript files
+const webpackClient = webpack(require('./webpack.config.js'));
+
+guzzle.task('client.webpack', [ 'clean', 'client.installNodeModules' ], function(done) {
+	webpackClient.run(err => {
+		done(err);
 	});
 });
 
 // compiles LESS to CSS files
-guzzle.task('less', [ 'clean' ], function(done) {
-	this.read([ 'screen/main.less', 'controller/controller.less' ], { cwd : SRC_CLIENT_PATH, base : SRC_CLIENT_PATH })
+guzzle.task('client.less', [ 'clean' ], function(done) {
+	this.read([ 'screen/screen.less', 'controller/controller.less' ], { cwd : SRC_CLIENT_PATH, base : SRC_CLIENT_PATH })
 		.pipe(sourcemaps.init())
 		.less({ paths : [ path.join(SRC_CLIENT_PATH, 'lib/less') ] })
 		.on('error', done)		// handles errors from LESS
@@ -170,10 +134,10 @@ guzzle.task('less', [ 'clean' ], function(done) {
 // thus if you change vendor libs or node_modules, run a full build
 guzzle.task('watch', [ 'build' ], function() {
 	guzzle.watch([ 'client/**/*', '!**/vendor/**', '!*.less' ],   { cwd : SRC_PATH }, [ 'client.copy' ]);
-	guzzle.watch([ 'client/**/*.ts' ],                            { cwd : SRC_PATH }, [ 'client.typeScript' ]);
 	guzzle.watch([ 'server/**/*', '!server/package-lock.json' ],  { cwd : SRC_PATH }, [ 'server.copy' ]);
-	guzzle.watch([ 'server/**/*.ts' ],                            { cwd : SRC_PATH }, [ 'server.typeScript' ]);
-	guzzle.watch([ 'client/**/*.less' ],                          { cwd : SRC_PATH }, [ 'less' ]);
+	guzzle.watch([ 'client/**/*.ts', 'common/**/*.ts' ],          { cwd : SRC_PATH }, [ 'client.webpack' ]);
+	guzzle.watch([ 'server/**/*.ts', 'common/**/*.ts' ],          { cwd : SRC_PATH }, [ 'server.typeScript' ]);
+	guzzle.watch([ 'client/**/*.less' ],                          { cwd : SRC_PATH }, [ 'client.less' ]);
 	guzzle.watch([ 'client/package.json' ],                       { cwd : SRC_PATH }, [ 'client.installNodeModules' ]);
 
 	return readyMessage('watch');
@@ -186,7 +150,7 @@ function readyMessage(prefix) {
 	return Promise.resolve();	// so it can be passed to the return of the task function
 }
 
-function adjustModule(contents, tsConfigPaths, {
+/* function adjustModule(contents, tsConfigPaths, {
 	stripPathPrefix = '',		// if truthy, remove this prefix from the start of import/require paths
 	exactMatch      = '',
 	dependencies    = [],		// list of other modules that this module depends upon
@@ -242,3 +206,4 @@ function adjustModule(contents, tsConfigPaths, {
 
 	return contents;
 }
+*/

@@ -1,18 +1,47 @@
 import _               from 'lodash';
 import Vue             from 'vue';
 import VueDraggable    from 'vuedraggable';
-import io              from 'socket.io-client';
+import Socket          from '/lib/Socket';
 import YouTubeClient, { SearchResult } from '/lib/YouTubeClient';
+import cleanupKaraokeTitle from '/lib/karaokeTitle';
 
 const googleAPIKey  = 'AIzaSyCA-EQFjc-c8pBfEv9F_GYuiBjHu_Ym18k';
 const youTubeClient = new YouTubeClient(googleAPIKey);
-const socket        = io.connect('/singer');
 
 const localUserName    = localStorage.getItem('kadori.userName') || '';
 const localSearchValue = localStorage.getItem('kadori.searchValue');
 
 Vue.component('draggable', VueDraggable);
 
+class SingerSocket extends Socket {
+	setName(newName : string) {
+		this.emit('setName', newName);
+	}
+
+	setQueueLength() {
+		this.emit('setQueueLength', vm.queued.length);
+	}
+
+	onConnect() {
+		if (vm.userName) {
+			this.setName(vm.userName);
+			this.setQueueLength();
+		}
+	}
+
+	// server asking for this user's next queued up videoID
+	onGetNextVideo() : string {
+		return (_.first(vm.queued) || {}).videoID;
+	}
+
+	onPlayingVideo(videoID) {
+		const oldLength = vm.queued.length;
+		const newQueue = vm.queued.filter(video => video.videoID != videoID);
+		if (oldLength != newQueue.length) {
+			vm.queued = newQueue;
+		}
+	}
+}
 
 const vm = new Vue({
 	el : '#root',
@@ -29,7 +58,9 @@ const vm = new Vue({
 		searchResults : [],
 
 		// the list of videos queued up next
-		queued : []
+		queued : [],
+
+		socket : SingerSocket,
 	},
 
 	created : function() {
@@ -37,9 +68,7 @@ const vm = new Vue({
 		if (this.searchValue) {
 			this.search();
 		}
-		if (this.userName) {
-			socket.emit('name', this.userName);
-		}
+		this.socket = new SingerSocket();	// creates and connects socket to the server
 	},
 
 	watch : {
@@ -50,11 +79,11 @@ const vm = new Vue({
 
 		userName : function() {
 			localStorage.setItem('kadori.userName', this.userName);
-			socket.emit('name', this.userName);
+			this.socket.setName(this.userName);
 		},
 
 		queued : function() {
-			socket.emit('queueUpdate');
+			this.socket.setQueueLength();
 		}
 	},
 
@@ -65,12 +94,17 @@ const vm = new Vue({
 
 		search : _.debounce(async function() {
 			// NOTE: double-quotes around "karaoke" indicates that it's a required to appear in the search results
-			this.searchResults = (await youTubeClient.search(`"karaoke" ${this.searchValue}`, { type : 'video', order : 'relevance' }))
+			this.searchResults = _(await youTubeClient.search(`"karaoke" ${this.searchValue}`, {
+				type : 'video', order : 'relevance', details : true, maxResults : 50
+			}))
+				.filter('embeddable')
 				.map(result => {
 					// try to clean up the title a bit
-					result.title = cleanUpTitle(result.title);
+					result.title = cleanupKaraokeTitle(result.title);
 					return result;
-				});
+				})
+				.orderBy('viewCount', 'desc')
+				.valueOf();
 			;
 		}, 500),
 
@@ -80,22 +114,16 @@ const vm = new Vue({
 
 		moving : function() {
 			console.log('moving', arguments);
+		},
+
+		humanizeNumber : function(number) {
+			if (number >= 1000000) {
+				return (Math.round(number / 100000) / 10) + ' M';
+			}
+			if (number >= 1000) {
+				return (Math.round(number / 100) / 10) + ' K';
+			}
+			return number + '';
 		}
 	},
-});
-
-function cleanUpTitle(title) {
-	return title
-		.replace(/\(\s*[(HD)(Lyrics)\s]*Karaoke[(with\s+Lyrics)(Version)\s]*\s*\)/i, '')
-		.replace(/^karaoke\s*-?\s*/i, '')
-		.replace(/\s*-?\s*karaoke\s*-?\s*(lyrics)?\s*$/i, '')
-		.replace(/\[[(instrumental)\s*\/(karaoke)]*\]/i, '')
-		.replace(/\*$/, '')
-		.replace(/\[\s*goodkaraokesongs.com\s*\]/i, '')
-	;
-}
-
-socket.on('getNextVideo', reply => {
-	const nextVideo = _.first(vm.queued);
-	reply(nextVideo ? nextVideo.videoID : undefined);
 });

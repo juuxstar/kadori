@@ -1,19 +1,26 @@
-import * as express  from 'express';
-import * as path     from 'path';
-import * as http     from 'http';
-import favicon       from 'serve-favicon';
-import * as morgan   from 'morgan';
-import * as _        from 'lodash';
+
+const Module = require('module');
+const oldRequire = Module.prototype.require;
+Module.prototype.require = function(id) {
+	if (id.startsWith('/')) {
+		id = __dirname + id;
+	}
+	return oldRequire.call(this, id);
+}
+
+import express  = require('express');
+import path     = require('path');
+import http     = require('http');
+import clc      = require('cli-color');
+import morgan   = require('morgan');
+import _        = require('lodash');
+// import favicon      from 'serve-favicon';
 // import cookieParser from 'cookie-parser';
 // import bodyParser   from 'body-parser';
-import * as clc      from 'cli-color';
-import * as socketio from 'socket.io';
+import Socket     from '/lib/Socket';
 
 const app     = express();
 const server  = http.createServer(app);
-const io      = socketio(server);
-const singers = new Map();	// the collection of singers, key=socket, value=Singer
-let currentVideoID;
 
 //app.use(favicon('../client/images/favicon.ico'));
 
@@ -44,88 +51,123 @@ app.use('/common', express.static('../common', { extensions : ['js'] }));
 // logs everything else (skips logging errors since that was already logged by previous logger)
 app.use(morgan(logFormat, { skip : (req, res) => res.statusCode >= 400 }));
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../client/screen/main.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../client/screen/screen.html')));
 app.get('/controller', (req, res) => res.sendFile(path.join(__dirname, '../client/controller/controller.html')));
 
-io.of('/screen')
-	.on('connection', socket => {
-		socket.join('screens');
-		socket
-			// returns the list of currently queued up singers
-			.on('queue', reply => {
-				reply(_.map(Array.from(singers.values()), 'name'));
-			})
-			.on('currentVideo', reply => {
-				reply(currentVideoID);
-			})
-		;
-	})
-;
 
-io.of('/singer')
-	.on('connection', socket => {
-		singers.set(socket, new Singer(socket));
 
-		socket.join('singers');
-		socket
-			// sets the name of the singer
-			.on('name', name => {
-				singers.get(socket).name = name;
-				updateSingersList();
-			})
-			.on('queueUpdate', () => {
-				tryPlayingVideo();
-			})
-			.on('disconnect', () => {
-				singers.delete(socket);
-				updateSingersList();
-			})
-		;
-	})
-;
-
-server.listen(80);
-console.log('Listening on http://localhost');
-
-class Singer {
-	socket : any;
-	name   : String;    // the name of the singer
-	lastUp : Date;      // the date/time of the most recent time when the singer had their song selected
-
-	constructor(socket) {
-		this.socket = socket;
-	}
-}
-
-function getSingerQueue() : Singer[] {
-	return _.sortBy(Array.from(singers.values()), 'lastUp');
-}
-
-function updateSingersList() {
-	io.of('/screen').emit('queue', _.map(getSingerQueue(), 'name'));
-}
-
-async function tryPlayingVideo() {
-	if (currentVideoID) {
-		return;
+/**
+ * Represents a socket for clients for the main screen.
+ * Ideally should only be one connected at any given time.
+ */
+class ScreenSocket extends Socket {
+	onGetQueue() {
+		return _.map(ScreenSocket.getSingerQueue(), singer => ({
+			name  : singer.name,
+			queue : singer.queueLength
+		}));
 	}
 
-	const singers = getSingerQueue();
+	onGetCurrentVideoID() {
+		return ScreenSocket.currentVideoID;
+	}
 
-	for (let singer of singers) {
-		currentVideoID = await emitWithResponse(singer.socket, 'getNextVideo');
-		if (currentVideoID) {
-			break;
+	onSetCurrentVideoID(videoID) {
+		ScreenSocket.currentVideoID = videoID;
+		if (!videoID) {
+			ScreenSocket.tryPlayingVideo();
 		}
 	}
 
-	io.of('/screen').in('screens').emit('playVideo', currentVideoID);
-}
+	// STATICS
 
-function emitWithResponse(socket, ...args) : Promise<any> {
-	return new Promise(resolve => {
-		socket.emit.call(socket, ...args, (response : any) => {
-			resolve(response);
-		});
-	});
+	/**
+	 * The videoID of the currently playing video.
+	 */
+	static currentVideoID : string = '';
+
+	static getSingerQueue() : SingerSocket[] {
+		return _.sortBy(SingerSocket.instances as SingerSocket[], 'lastUp');
+	}
+
+	static updateSingersList() {
+		ScreenSocket.emit('queue', _.map(ScreenSocket.getSingerQueue(), singer => ({
+			name  : singer.name,
+			queue : singer.queueLength
+		}) ));
+	}
+
+	static async tryPlayingVideo() {
+		if (ScreenSocket.currentVideoID) {
+			return;	// video already playing
+		}
+
+		const singers = ScreenSocket.getSingerQueue();
+		let singer : SingerSocket;
+
+		for (singer of singers) {
+			ScreenSocket.currentVideoID = await singer.getNextVideo();
+			if (ScreenSocket.currentVideoID) {
+				break;
+			}
+		}
+
+		if (!ScreenSocket.currentVideoID) {
+			return;
+		}
+
+		ScreenSocket.emit('playVideo', ScreenSocket.currentVideoID);
+		SingerSocket.emit('playingVideo', ScreenSocket.currentVideoID);
+
+		singer.lastUp = new Date();
+		ScreenSocket.updateSingersList();
+	}
 }
+ScreenSocket.initialize(server);
+
+/**
+ * Represents a socket for clients of the mobile controllers.
+ */
+class SingerSocket extends Socket {
+	/**
+	 * The name of the singer.
+	 */
+	name        : string;    // the name of the singer
+	lastUp      : Date;      // the date/time of the most recent time when the singer had their song selected
+	queueLength : Number;    // the length of the singer's song queue
+
+	constructor() {
+		super();
+		this.lastUp = new Date();
+	}
+
+	getNextVideo() : Promise<string> {
+		return this.emitWithReply('getNextVideo') as Promise<string>;
+	}
+
+	playingVideo(videoID) {
+		this.emit('playingVideo', videoID);
+	}
+
+	onSetName(name) {
+		this.name = name;
+		ScreenSocket.updateSingersList();
+	}
+
+	onSetQueueLength(queueLength : Number) {
+		this.queueLength = queueLength;
+		ScreenSocket.updateSingersList();
+		// if no video currently playing, maybe the new queue might have something
+		ScreenSocket.tryPlayingVideo();
+	}
+
+	onDisconnect() {
+		super.onDisconnect();
+		ScreenSocket.updateSingersList();
+	}
+}
+SingerSocket.initialize(server);
+
+
+server.listen(80);
+console.log('Listening on http://localhost');

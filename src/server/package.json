@@ -1,8 +1,10 @@
 {
-  "name"       : "kadori-server",
-  "version"    : "0.0.1",
-  "author"     : "Tomas Benda <juuxstar@gmail.com>",
-  "description": "The server component of this project",
+  "name"        : "kadori-server",
+  "version"     : "0.0.1",
+  "author"      : "Tomas Benda <juuxstar@gmail.com>",
+  "description" : "The server component of this project",
+  "license"     : "MIT",
+  "repository"  : "github: juuxstar/kadori",
   "dependencies": {
     "cli-color"    : "^1.4.0",
     "express"      : "^4.16.4",
@@ -12,10 +14,10 @@
     "lodash"       : "^4.17.11"
   },
   "devDependencies": {
-    "@types/node"         : "^10.12.20",
-    "@types/express"      : "^4.16.1",
-    "@types/morgan"       : "^1.7.35",
-    "@types/cli-color"    : "^0.3.29",
-    "@types/serve-favicon": "^2.2.30"
+    "@types/node"                 : "^10.12.20",
+    "@types/express"              : "^4.16.1",
+    "@types/morgan"               : "^1.7.35",
+    "@types/cli-color"            : "^0.3.29",
+    "@types/serve-favicon"        : "^2.2.30"
   }
 }

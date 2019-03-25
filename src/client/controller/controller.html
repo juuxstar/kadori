@@ -5,7 +5,17 @@
 		<link rel="stylesheet" type="text/css" href="./controller.css">
 	</head>
 
-	<body><div id="root">
+	<body>
+	<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+		<symbol id="eye" viewBox="0 0 22 22">
+			<g transform="matrix(.02146 0 0 .02146 1 1)">
+				<path d="m466.07 161.53c-205.6 0-382.8 121.2-464.2 296.1-2.5 5.3-2.5 11.5 0 16.9 81.4 174.9 258.6 296.1 464.2 296.1 205.6 0 382.8-121.2 464.2-296.1 2.5-5.3 2.5-11.5 0-16.9-81.4-174.9-258.6-296.1-464.2-296.1m0 514.7c-116.1 0-210.1-94.1-210.1-210.1 0-116.1 94.1-210.1 210.1-210.1 116.1 0 210.1 94.1 210.1 210.1 0 116-94.1 210.1-210.1 210.1"/>
+				<circle cx="466.08" cy="466.02" r="134.5"/>
+			</g>
+		</symbol>
+	</svg>
+
+	<div id="root">
 		<div class="flex-col">
 			<div class="queue flex-col">
 				<div class="header flex-row flex-h-full">
@@ -29,6 +39,10 @@
 						<div class="video flex-row flex-v-center" v-for="result in searchResults" :key="result.videoID">
 							<img v-bind:src="result.thumbnailUrl" />
 							<label class="flex-grow">{{ result.title }}</label>
+							<div class="views flex-row flex-center">
+								<svg class="icon icon-eye"><use xlink:href="#eye"></use></svg>
+								<label>{{ humanizeNumber(result.viewCount) }}</label>
+							</div>
 						</div>
 					</draggable>
 				</div>
@@ -37,7 +51,7 @@
 
 		<div class="name-editor flex-col flex-center" v-if="isUserNameEditorVisible">
 			<label>Hi, what is your name?</label>
-			<input v-model.trim="userName" />
+			<input v-model.trim.lazy="userName" />
 			<button :disabled="!userName" v-on:click="submitUserName">That's me</button>
 		</div>
 

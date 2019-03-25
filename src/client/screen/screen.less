@@ -1,0 +1,102 @@
+@import "flex";
+@import "../lib/less/font";
+@import (reference) "../lib/less/colors";
+
+body {
+	height     : 100vh;
+	margin     : 0;
+	font-family: Cabin;
+	background : @neutral1;
+	color      : white;
+}
+
+body {
+	#root {
+		height    : 100%;
+		width     : 100%;
+		background: inherit;
+	}
+	.header {
+		margin   : 10px;
+		font-size: 30px;
+
+		.current-title {
+			overflow     : hidden;
+			text-overflow: ellipsis;
+			white-space  : nowrap;
+		}
+
+		.next-up {
+			color : @neutral3;
+
+			label {
+				.label();
+			}
+			.name {
+				color: @neutral4;
+			}
+		}
+	}
+
+	.youtube-player-wrapper {
+		height: 100%;
+
+		> iframe {
+			height: 100%;
+			width : 100%;
+		}
+	}
+
+	.footer {
+		margin : 10px;
+
+		.queue {
+			label {
+				.label();
+				color : @neutral3;
+			}
+
+			.singer {
+				color        : @neutral4;
+				border-radius: 5px;
+				margin-left  : 10px;
+
+				& > * {
+					padding      : 5px 10px;
+				}
+
+				.name {
+					background   : @neutral2;
+					border-radius: 5px 0 0 5px;
+				}
+
+				.queue-length {
+					box-sizing   : border-box;
+					min-width    : 2rem;
+					background   : @neutral3;
+					border-radius: 0 5px 5px 0;
+					text-align   : center;
+				}
+			}
+		}
+
+		@qr-code-size : 80px;
+
+		.controller-link {
+			color       : @neutral3;
+			margin-right: @qr-code-size;
+		}
+
+		.qrcode {
+			width      : @qr-code-size;
+			height     : @qr-code-size;
+			position   : absolute;
+			right      : 0;
+			bottom     : 0;
+		}
+	}
+}
+
+.label() {
+	text-transform: uppercase;
+}

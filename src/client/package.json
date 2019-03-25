@@ -1,17 +1,20 @@
 {
-  "name": "kadori-client",
-  "version": "0.0.1",
-  "author": "Tomas Benda <juuxstar@gmail.com>",
-  "description": "The client component of this project",
+  "name"        : "kadori-client",
+  "version"     : "0.0.1",
+  "author"      : "Tomas Benda <juuxstar@gmail.com>",
+  "description" : "The client component of this project",
+  "license"     : "MIT",
+  "repository"  : "github: juuxstar/kadori",
   "dependencies": {
     "jquery"                : "^3.3.1",
-    "lodash-es"             : "^4.17.11",
+    "lodash"                : "^4.17.11",
     "axios"                 : "^0.18.0",
     "vue"                   : "^2.6.2",
     "vue-class-component"   : "^7.0.1",
     "vue-property-decorator": "^7.3.0",
     "vuedraggable"          : "^2.17.0",
-    "socket.io-client"      : "^2.2.0"
+    "socket.io-client"      : "^2.2.0",
+    "qrcode"                : "^1.3.3"
   },
   "devDependencies": {
     "@types/jquery": "^3.3.29"

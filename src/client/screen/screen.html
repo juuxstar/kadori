@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Kadori - Karaoke Done Right</title>
+		<link rel="stylesheet" type="text/css" href="/screen/screen.css">
+	</head>
+
+	<body>
+
+	<div id="root" class="flex-col">
+		<div class="header flex-row">
+			<div class="current-title flex-grow">{{ title }}</div>
+			<div class="next-up">
+				<label>Next Up</label>
+				<span class="name">{{ getNextUp() }}</span>
+			</div>
+		</div>
+
+		<div class="youtube-player-wrapper flex-grow flex-col flex-center">
+			<youtube-player ref="youtube"
+				v-on:unstarted="emitCurrentVideoID"
+				v-on:playing="onPlayingVideo"
+				v-on:ended="emitCurrentVideoID"
+			></youtube-player>
+		</div>
+
+		<div class="footer flex-row flex-h-full">
+			<div class="queue flex-grow flex-row flex-v-center">
+				<label>queue</label>
+				<div class="singer flex-row" v-for="singer in queue">
+					<div class="name">{{ singer.name }}</div>
+					<div class="queue-length">{{ singer.queue }}</div>
+				</div>
+			</div>
+			<div class="controller-link">{{ controllerURL }}</div>
+			<img class="qrcode" :src="controllerDataURI" />
+		</div>
+
+	</div>
+
+	<script type="module" src="/screen/screen"></script>
+	</body>
+</html>

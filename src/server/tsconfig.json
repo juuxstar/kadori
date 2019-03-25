@@ -7,8 +7,9 @@
 		],
 		"baseUrl": ".",
 		"paths"  : {
-			"/lib/*": [ "./lib/*", "../common/lib/*" ],
-			"*"    : [ "/srv/build/server/node_modules/*" ]
+			"/lib/*"       : [ "./lib/*", "../common/lib/*" ],
+			"/common/lib/*": [ "../common/lib/*" ],
+			"*"            : [ "/srv/build/server/node_modules/*" ]
 		}
 	}
 }
