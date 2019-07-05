@@ -1,6 +1,7 @@
 {
   "name": "@juuxstar/kadori",
   "description": "Karaoke Done Right",
+  "version" : "1.0.2",
   "repository": {
     "type": "git",
     "url": "https: //github.com/juuxstar/kadori.git"
