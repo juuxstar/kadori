@@ -2,9 +2,20 @@
 @import "../lib/less/font";
 @import (reference) "../lib/less/colors";
 
+body {
+	height     : 100vh;
+	margin     : 0;
+	background : black;
+	color      : white;
+}
+
 body, input, button {
 	font-family: Cabin;
 	font-size  : 2.5rem;
+}
+
+*[v-cloak] {
+	display: none;
 }
 
 input {
@@ -46,21 +57,16 @@ button {
 	}
 }
 
-body {
-	height     : 100vh;
-	margin     : 0;
-	background : black;
-	color      : white;
+svg[class^=icon-] {
+	fill  : white;
+	width : 2rem;
+	height: 2rem;
+}
 
-	#root {
-		height    : 100%;
-		width     : 100%;
-		background: inherit;
-
-		> * {
-			height: 100%;
-		}
-	}
+#root {
+	height    : 100%;
+	width     : 100%;
+	background: inherit;
 
 	.name-editor {
 		position  : absolute;
@@ -79,19 +85,66 @@ body {
 		}
 	}
 
-	.queue, .search {
-		.header {
-			background    : @neutral2;
-			padding       : 1rem;
-			margin-bottom : 1rem;
-			font-weight   : bold;
-			text-transform: uppercase;
+	> .header {
+		background    : @neutral1;
+		font-weight   : bold;
+		text-transform: uppercase;
+
+		& > * {
+			padding: 10px;
+		}
+
+		.icon-settings, .icon-search {
+			padding: 2rem;
+			width  : 3rem;
+			height : 3rem;
+			cursor : pointer;
+		}
+
+		.selected {
+			background-color: @neutral2;
+		}
+	}
+
+	> .contents {
+		position: relative;
+		overflow: hidden;
+
+		> * {
+			position: absolute;
+			top     : 0;
+			left    : 0;
+			width   : 100%;
+			height  : 100%;
+		}
+
+		.search, .settings {
+			background-color: @neutral2;
+		}
+
+		.settings {
+			transition: left 0.5s;
+
+			&:not(.visible) {
+				left      : -100%;
+				transition: left 0.5s;
+			}
+		}
+
+		.search {
+			transition: left 0.5s;
+
+			&:not(.visible) {
+				left      : 100%;
+				transition: left 0.5s;
+			}
 
 			input {
-				margin-left   : 10px;
+				display       : block;
 				background    : transparent;
 				color         : white;
 				text-transform: uppercase;
+				padding       : 2rem;
 
 				&::placeholder {
 					color         : #CCC;
@@ -99,47 +152,100 @@ body {
 					text-transform: capitalize;
 				}
 			}
+
+			.video-list {
+				min-height      : 2rem;
+				overflow-y      : auto;
+				overflow-x      : hidden;
+				background-color: @neutral1;
+			}
+		}
+
+		.queue {
+			.empty {
+				text-align: center;
+				font-size : 4rem;
+				margin    : 5rem;
+			}
 		}
 
 		.video-list {
-			min-height: 2rem;
-			overflow  : auto;
+			width           : 100%;
+			min-height      : 2rem;
+			overflow-y      : auto;
+			overflow-x      : hidden;
+			background-color: @neutral1;
 
 			.video {
-				margin       : 1rem;
-				padding      : 2rem;
-				background   : @neutral3;
-				border-radius: 1rem;
+				@border-radius: 1rem;
+				position      : relative;
+				margin        : 1rem;
+				border-radius : @border-radius;
+				transition    : background-color 1s;
+				overflow      : hidden;
 
-				// class of the placeholder when the video is being dragged around
-				&.sortable-ghost {
-					background: @accent1;
+				div[class^=action-] {
+					position  : absolute;
+					height    : 100%;
+					width     : 200px;
+					text-align: center;
+
+					*[class^=icon-] {
+						width       : 4rem;
+						height      : 4rem;
+						fill-opacity:  0.5;
+					}
 				}
+				.action-left {
+					background-color: @alarm-red;
+					left            : 0;
 
-				img {
-					height      : 10rem;
-					float       : left;
-					margin-right: 2rem;
-				}
-
-				label {
-					text-transform: capitalize;
-				}
-
-				.views {
-					font-size : 2rem;
-					margin-top: auto;
-
-					label {
-						white-space: nowrap;
-						margin-left: 10px;
+					.icon-remove {
+						transform: rotate(45deg);
 					}
 				}
 
-				.icon-eye {
-					width : 2rem;
-					height: 2rem;
-					fill  : white;
+				.action-right {
+					background-color: @confirm-green;
+					right : 0;
+				}
+
+				.front-face {
+					position     : relative;
+					left         : 0;
+					width        : 100%;
+					padding      : 2rem;
+					background   : @neutral3;
+					border-radius: @border-radius;
+
+					&:not(.dragging) {
+						transition: left 0.5s;	// slowly moves the videos back to their original positions
+					}
+
+					// class of the placeholder when the video is being dragged around
+					&.sortable-ghost {
+						background: @accent1;
+					}
+
+					img {
+						height      : 10rem;
+						float       : left;
+						margin-right: 2rem;
+					}
+
+					label {
+						text-transform: capitalize;
+					}
+
+					.views {
+						font-size : 2rem;
+						margin-top: auto;
+
+						label {
+							white-space: nowrap;
+							margin-left: 10px;
+						}
+					}
 				}
 			}
 		}

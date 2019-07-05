@@ -3,7 +3,7 @@ version: '3.7'
 services:
   # main server
   node:
-    image: node:11.8.0
+    image: node:12.0.0
     restart: unless-stopped
     volumes:
       - build:/srv/build:ro
@@ -11,13 +11,14 @@ services:
     working_dir: /srv/build/server
     command: "node server.js"
     ports:
-      - "8080:80"
+      - "80:80"
     environment:
-      TZ:  America/Toronto
+      TZ      : America/Toronto
+      NODE_ENV: development
 
   # watch process for use in development
   watch:
-    image: node:11.8.0
+    image: node:11.15
     volumes:
       - ./src:/srv/src:rw,delegated   # needs to writeback package-lock.json
       - ./devops:/srv/devops:rw,delegated

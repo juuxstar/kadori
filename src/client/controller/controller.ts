@@ -1,17 +1,19 @@
-import _               from 'lodash';
-import Vue             from 'vue';
-import VueDraggable    from 'vuedraggable';
-import Socket          from '/lib/Socket';
+import _                        from 'lodash';
+import VueDraggable             from 'vuedraggable';
+import { Vue, Component, Prop } from 'vue-property-decorator';
+import Socket                          from '/lib/Socket';
 import YouTubeClient, { SearchResult } from '/lib/YouTubeClient';
-import cleanupKaraokeTitle from '/lib/karaokeTitle';
+import cleanupKaraokeTitle             from '/lib/karaokeTitle';
+import { googleAPIKey }                from '/config/secrets';
+import KadoriVideo                     from './KadoriVideo';
 
-const googleAPIKey  = 'AIzaSyCA-EQFjc-c8pBfEv9F_GYuiBjHu_Ym18k';
 const youTubeClient = new YouTubeClient(googleAPIKey);
 
 const localUserName    = localStorage.getItem('kadori.userName') || '';
 const localSearchValue = localStorage.getItem('kadori.searchValue');
 
 Vue.component('draggable', VueDraggable);
+Vue.component('kadori-video', KadoriVideo);
 
 class SingerSocket extends Socket {
 	setName(newName : string) {
@@ -51,6 +53,8 @@ const vm = new Vue({
 		userName : localUserName,
 
 		isUserNameEditorVisible : !localUserName,
+
+		visiblePane : 'queue',
 
 		searchValue : localSearchValue,
 
@@ -108,22 +112,21 @@ const vm = new Vue({
 			;
 		}, 500),
 
-		swipeLeft : function() {
-			console.log('swiped left', arguments);
+		addToQueue : function(video) {
+			this.queued.push(video);
+			this.removeFromSearch(video);
 		},
 
-		moving : function() {
-			console.log('moving', arguments);
+		removeFromSearch : function(video) {
+			this.searchResults = this.searchResults.filter(result => result.videoID !== video.videoID);
 		},
 
-		humanizeNumber : function(number) {
-			if (number >= 1000000) {
-				return (Math.round(number / 100000) / 10) + ' M';
-			}
-			if (number >= 1000) {
-				return (Math.round(number / 100) / 10) + ' K';
-			}
-			return number + '';
+		removeFromQueue : function(video) {
+			this.queued = this.queued.filter(song => song.videoID !== video.videoID);
+		},
+
+		togglePane : function(paneName) {
+			this.visiblePane = this.visiblePane === paneName ? 'queue' : paneName;
 		}
 	},
 });

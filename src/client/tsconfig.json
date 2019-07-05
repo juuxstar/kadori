@@ -8,6 +8,7 @@
 		"paths" : {
 			"/lib/*"                : [ "./lib/*", "../common/lib/*" ],
 			"/common/lib/*"         : [ "../common/lib/*" ],
+			"/config/*"             : [ "./config/*" ],
 			"jquery"                : [ "/srv/build/client/node_modules/jquery/dist/jquery.min.js" ],
 			"lodash"                : [ "/srv/build/client/node_modules/lodash/lodash.js" ],
 			"axios"                 : [ "/srv/build/client/node_modules/axios/dist/axios.min.js" ],

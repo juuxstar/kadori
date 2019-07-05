@@ -1,16 +1,16 @@
 'use strict';
 
-const Promise      = require('bluebird');
-const path         = require('path');
-const fs           = Promise.promisifyAll(require('fs'));
-const childProcess = Promise.promisifyAll(require('child_process'));
-const clc          = require('cli-color');
-const _            = require('lodash');
-const changed      = require('gulp-changed');
-const sourcemaps   = require('gulp-sourcemaps');
-const typeScript   = require('gulp-typescript');
-const webpack      = require('webpack');
-const guzzle       = require('@juuxstar/gulp-guzzle');
+const Promise    = require('bluebird');
+const path       = require('path');
+const fs         = Promise.promisifyAll(require('fs'));
+const exec       = Promise.promisifyAll(require('child_process')).execAsync;
+const clc        = require('cli-color');
+const _          = require('lodash');
+const changed    = require('gulp-changed');
+const sourcemaps = require('gulp-sourcemaps');
+const typeScript = require('gulp-typescript');
+const webpack    = require('webpack');
+const guzzle     = require('@juuxstar/gulp-guzzle');
 
 // gulp plugins to guzzle
 guzzle({
@@ -44,13 +44,10 @@ guzzle.task('build',   [ 'server', 'client' ]);
  * Note: leave node_modules since the install task will take care of removing unwanted modules.
  */
 guzzle.task('clean', _.once(async () => {
-	const excludeDirs = [ 'server/node_modules', 'client/node_modules' ].map(dir => path.join(DST_PATH, dir));
-
-	// to clear all but the specified dir, we remove its write perms, delete everything, and restore write perms
-	// the `|| true` prevents early exits from errors (fullDir might not exist and that's okay)
-	await Promise.all(excludeDirs.map(dir => childProcess.execAsync(`chmod 100 ${dir} || true`)));
-	await childProcess.execAsync(`rm -fr ${DST_PATH} || true`);
-	await Promise.all(excludeDirs.map(dir => childProcess.execAsync(`chmod 755 ${dir} || true`)));
+	await Promise.all([ 'server', 'client' ].map(dir => {
+		const destDir = `${DST_PATH}/${dir}`;
+		return exec(`mkdir -p ${destDir} && cd ${destDir} && ls --ignore=node_modules -1 . | xargs rm -fr`);
+	}));
 }));
 
 [ 'server', 'client' ].forEach(component => {
@@ -83,7 +80,7 @@ guzzle.task('clean', _.once(async () => {
 		// add other server/client tasks
 		...({
 			server : [ 'server.typeScript' ],
-			client : [ 'client.webpack', 'client.less' /* ,'adjustNonES6Modules'*/ ],
+			client : [ 'client.webpack', 'client.less' ],
 		})[component],
 	]);
 });
@@ -133,12 +130,12 @@ guzzle.task('client.less', [ 'clean' ], function(done) {
 // exclude vendor and node_modules cause there's a lot of files to watch and they don't tend to change very often
 // thus if you change vendor libs or node_modules, run a full build
 guzzle.task('watch', [ 'build' ], function() {
-	guzzle.watch([ 'client/**/*', '!**/vendor/**', '!*.less' ],   { cwd : SRC_PATH }, [ 'client.copy' ]);
-	guzzle.watch([ 'server/**/*', '!server/package-lock.json' ],  { cwd : SRC_PATH }, [ 'server.copy' ]);
-	guzzle.watch([ 'client/**/*.ts', 'common/**/*.ts' ],          { cwd : SRC_PATH }, [ 'client.webpack' ]);
-	guzzle.watch([ 'server/**/*.ts', 'common/**/*.ts' ],          { cwd : SRC_PATH }, [ 'server.typeScript' ]);
-	guzzle.watch([ 'client/**/*.less' ],                          { cwd : SRC_PATH }, [ 'client.less' ]);
-	guzzle.watch([ 'client/package.json' ],                       { cwd : SRC_PATH }, [ 'client.installNodeModules' ]);
+	guzzle.watch([ 'client/**/*', '!client/package-lock.json', '!*.less' ], { cwd : SRC_PATH }, [ 'client.copy' ]);
+	guzzle.watch([ 'server/**/*', '!server/package-lock.json' ],            { cwd : SRC_PATH }, [ 'server.copy' ]);
+	guzzle.watch([ 'client/**/*.ts', 'common/**/*.ts', 'client/tsconfig.json', 'devops/webpack.config.js' ], { cwd : SRC_PATH }, [ 'client.webpack' ]);
+	guzzle.watch([ 'server/**/*.ts', 'common/**/*.ts', 'server/tsconfig.json' ], { cwd : SRC_PATH }, [ 'server.typeScript' ]);
+	guzzle.watch([ 'client/**/*.less' ],                                         { cwd : SRC_PATH }, [ 'client.less' ]);
+	guzzle.watch([ 'client/package.json' ],                                      { cwd : SRC_PATH }, [ 'client.installNodeModules' ]);
 
 	return readyMessage('watch');
 });
@@ -149,61 +146,3 @@ function readyMessage(prefix) {
 	console.log(clc.green.bold.underline(`${prefix} is ready (${Math.round(new Date() - START_TIME) / 1000} sec)`));
 	return Promise.resolve();	// so it can be passed to the return of the task function
 }
-
-/* function adjustModule(contents, tsConfigPaths, {
-	stripPathPrefix = '',		// if truthy, remove this prefix from the start of import/require paths
-	exactMatch      = '',
-	dependencies    = [],		// list of other modules that this module depends upon
-	isNodeModule    = false,	// true if the contents are a node module
-}) {
-	contents = contents.toString();
-
-	// check if module is new-style ES or old-style AMD
-	if (!isNodeModule && !contents.match(/^\s*(import\s)|(export\s)/)) {
-		// assume using AMD pattern (module, exports, require)
-		let imports, requireFunction;
-		if (dependencies.length > 0) {
-			// add import statements
-			imports         = dependencies.map(dependency => `import ${dependency} from "${dependency}";`).join('\n');
-			requireFunction = `function require(dependency) {
-				return {
-					${dependencies.map(dependency => `"${dependency}": ${dependency}`).join(',\n')}
-				}[dependency];
-			}`;
-		}
-
-		// add module.exports wrapper
-		contents = `${imports}\nlet exports={},module={exports};${requireFunction};${contents};\nexport default module.exports;`;
-	}
-
-	const dependsPathRegex = isNodeModule
-		? /(^.*[\s=]\s*require\s*\(['"])(.*)(['"].*$)/gm   // require statements
-		: /(^\s*import\s.*['"])(.+)(['"].*$)/gm            // import statements
-	;
-
-	// adjust import paths with paths from tsConfig (if any)
-	contents = contents.replace(dependsPathRegex, (match, preContent, importPath, postContent) => {
-		_.forEach(tsConfigPaths, (pathReplacements, pathPattern) => {
-			const patternPrefix = pathPattern.split('*', 1)[0];
-			if (!patternPrefix) {
-				return;
-			}
-
-			if (exactMatch ? importPath === patternPrefix : importPath.startsWith(patternPrefix)) {
-				importPath = pathReplacements[0].split('*', 1)[0] + importPath.substr(patternPrefix.length);
-
-				// remove prefix (if specified)
-				if (stripPathPrefix && importPath.startsWith(stripPathPrefix)) {
-					importPath = importPath.substr(stripPathPrefix.length);
-				}
-
-				return false;	// break out from _.forEach
-			}
-		});
-
-		return preContent + importPath + postContent;
-	});
-
-	return contents;
-}
-*/

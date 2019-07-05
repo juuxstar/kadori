@@ -6,55 +6,90 @@
 	</head>
 
 	<body>
-	<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-		<symbol id="eye" viewBox="0 0 22 22">
-			<g transform="matrix(.02146 0 0 .02146 1 1)">
-				<path d="m466.07 161.53c-205.6 0-382.8 121.2-464.2 296.1-2.5 5.3-2.5 11.5 0 16.9 81.4 174.9 258.6 296.1 464.2 296.1 205.6 0 382.8-121.2 464.2-296.1 2.5-5.3 2.5-11.5 0-16.9-81.4-174.9-258.6-296.1-464.2-296.1m0 514.7c-116.1 0-210.1-94.1-210.1-210.1 0-116.1 94.1-210.1 210.1-210.1 116.1 0 210.1 94.1 210.1 210.1 0 116-94.1 210.1-210.1 210.1"/>
-				<circle cx="466.08" cy="466.02" r="134.5"/>
-			</g>
-		</symbol>
-	</svg>
+	<!-- icons must be inserted directly as there's currently no way for browsers to include an SVG file whose symbols can be referenced -->
+	<div style="display: none"><%= include('/assets/icons.svg') %></div>
 
-	<div id="root">
-		<div class="flex-col">
-			<div class="queue flex-col">
-				<div class="header flex-row flex-h-full">
-					<span>Queued ({{ queued.length }})</span>
-					<span>{{ userName }}</span>
-				</div>
-				<div class="video-list flex-col">
+	<div id="root" class="flex-col">
+		<div class="header flex-row flex-center" v-cloak>
+			<svg class="icon-settings"
+				:class="{ selected : visiblePane === 'settings' }"
+				v-on:click="togglePane('settings')"
+			>
+				<use xlink:href="#bars-horizontal-three"></use>
+			</svg>
+
+			<div class="queue flex-grow flex-row flex-center" v-on:click="togglePane('queue')">
+				Queued: {{ queued.length }}
+			</div>
+
+			<svg class="icon-search"
+				:class="{ selected : visiblePane === 'search' }"
+				v-on:click="togglePane('search')"
+			>
+				<use xlink:href="#search"></use>
+			</svg>
+		</div>
+
+		<div class="contents flex-grow" v-cloak>
+			<div class="queue flex-col flex-center">
+				<div class="video-list flex-col flex-grow" v-if="queued.length">
 					<draggable v-model="queued" :options="{ group: { name : 'videos', pull : false }, handle : 'img' }">
-						<div class="video flex-row flex-v-center" v-for="video in queued" :key="video.videoID">
-							<img v-bind:src="video.thumbnailUrl" />
-							<label class="flex-grow">{{ video.title }}</label>
-						</div>
+						<kadori-video
+							v-for  = "video in queued"
+							:key   = "video.videoID"
+							:video = "video"
+							v-on:action-left="removeFromQueue"
+						>
+							<template v-slot:action-left>
+								<svg class="icon-remove"><use xlink:href="#plus"></use></svg>
+							</template>
+						</kadori-video>
 					</draggable>
+				</div>
+
+				<div class="empty" v-if="queued.length === 0">
+					<p>Your song queue is empty.</p>
+					<p>Search for songs and add them to your queue.</p>
 				</div>
 			</div>
 
-			<div class="search flex-grow flex-col">
-				<div class="header flex-row flex-v-center"><input class="flex-grow" v-model="searchValue" placeholder="search for artist or song..." /></div>
+			<div class="settings"
+				:class="{ visible : visiblePane === 'settings' }"
+			>
+				<div>{{ userName }}</div>
+			</div>
+
+			<div class="search flex-grow flex-col"
+				:class="{ visible : visiblePane === 'search' }"
+			>
+				<input v-model="searchValue" placeholder="search for artist or song..." />
 				<div class="video-list flex-col flex-grow">
-					<draggable v-model="searchResults" :options="{ group: { name : 'videos', put : false, revertClone : true }, sort : false, handle : 'img' }">
-						<div class="video flex-row flex-v-center" v-for="result in searchResults" :key="result.videoID">
-							<img v-bind:src="result.thumbnailUrl" />
-							<label class="flex-grow">{{ result.title }}</label>
-							<div class="views flex-row flex-center">
-								<svg class="icon icon-eye"><use xlink:href="#eye"></use></svg>
-								<label>{{ humanizeNumber(result.viewCount) }}</label>
-							</div>
-						</div>
-					</draggable>
+					<kadori-video
+						v-for  = "searchResult in searchResults"
+						:key   = "searchResult.videoID"
+						:video = "searchResult"
+						v-on:action-left ="removeFromSearch"
+						v-on:action-right="addToQueue"
+					>
+						<template v-slot:action-left>
+							<svg class="icon-remove"><use xlink:href="#plus"></use></svg>
+						</template>
+						<template v-slot:action-right>
+							<svg class="icon-add"><use xlink:href="#plus"></use></svg>
+						</template>
+					</kadori-video>
 				</div>
 			</div>
 		</div>
 
-		<div class="name-editor flex-col flex-center" v-if="isUserNameEditorVisible">
+		<div class="name-editor flex-col flex-center" v-if="isUserNameEditorVisible" v-cloak>
 			<label>Hi, what is your name?</label>
 			<input v-model.trim.lazy="userName" />
 			<button :disabled="!userName" v-on:click="submitUserName">That's me</button>
 		</div>
 
 		<script type="module" src="/controller/controller"></script>
-	</div></body>
+	</div>
+
+	</body>
 </html>

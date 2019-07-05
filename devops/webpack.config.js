@@ -13,6 +13,7 @@ module.exports = {
 		alias      : {
 			'/lib'        : '/srv/src/client/lib',
 			'/common/lib' : '/srv/src/common/lib',
+			'/config'     : '/srv/src/client/config',
 			'vue'         : '/srv/build/client/node_modules/vue/dist/vue.js',
 		},
 	},
