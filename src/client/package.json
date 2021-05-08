@@ -7,7 +7,7 @@
   "repository"  : "github: juuxstar/kadori",
   "dependencies": {
     "jquery"                : "^3.5.0",
-    "lodash"                : "^4.17.15",
+    "lodash"                : "^4.17.21",
     "axios"                 : "^0.18.1",
     "vue"                   : "^2.6.2",
     "vue-class-component"   : "^7.0.1",
